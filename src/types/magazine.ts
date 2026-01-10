@@ -19,6 +19,13 @@ export interface ReflectionQuestion {
   question: string;
 }
 
+export interface MagazineImage {
+  id: string;
+  url: string | null;
+  caption?: string;
+  position: 'cover' | 'topic1' | 'topic2' | 'topic3' | 'conclusion' | 'sidebar' | 'footer';
+}
+
 export interface MagazineContent {
   lessonTitle: string;
   lessonNumber: string;
@@ -32,7 +39,17 @@ export interface MagazineContent {
   conclusion: string;
   theologicalSubsidies: string;
   reflectionQuestions: ReflectionQuestion[];
+  images: MagazineImage[];
 }
+
+export const defaultImages: MagazineImage[] = [
+  { id: 'img-cover', url: null, caption: 'Imagem de Capa', position: 'cover' },
+  { id: 'img-topic1', url: null, caption: 'Ilustração Tópico I', position: 'topic1' },
+  { id: 'img-topic2', url: null, caption: 'Ilustração Tópico II', position: 'topic2' },
+  { id: 'img-topic3', url: null, caption: 'Ilustração Tópico III', position: 'topic3' },
+  { id: 'img-sidebar', url: null, caption: 'Ilustração Lateral', position: 'sidebar' },
+  { id: 'img-conclusion', url: null, caption: 'Ilustração Conclusão', position: 'conclusion' },
+];
 
 export const defaultContent: MagazineContent = {
   lessonTitle: "A Mordomia Cristã",
@@ -148,5 +165,6 @@ Somos salvos pela graça mediante a fé (Ef 2.8). Sem fé, não poderemos agrada
     { id: "q4", number: 4, question: "Meu orçamento familiar suporta a inflação sem murmuração, priorizando o essencial e a generosidade (Mt 6.31-33; Hb 13.5)?" },
     { id: "q5", number: 5, question: "Como posso ser um mordomo fiel dos talentos e dons que Deus me concedeu?" },
     { id: "q6", number: 6, question: "De que forma a minha mordomia reflete o amor de Cristo ao próximo?" }
-  ]
+  ],
+  images: defaultImages
 };
