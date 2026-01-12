@@ -19,11 +19,18 @@ export interface ReflectionQuestion {
   question: string;
 }
 
-export interface MagazineImage {
+export interface PageImage {
   id: string;
   url: string | null;
   caption?: string;
-  position: 'cover' | 'topic1' | 'topic2' | 'topic3' | 'conclusion' | 'sidebar' | 'footer';
+  size: 'small' | 'medium' | 'large' | 'fill'; // Controls how much space it takes
+  position: 'inline' | 'sidebar' | 'full-width' | 'float-left' | 'float-right';
+}
+
+export interface MagazinePage {
+  id: string;
+  pageNumber: number;
+  images: PageImage[];
 }
 
 export interface MagazineContent {
@@ -39,16 +46,67 @@ export interface MagazineContent {
   conclusion: string;
   theologicalSubsidies: string;
   reflectionQuestions: ReflectionQuestion[];
-  images: MagazineImage[];
+  pageImages: MagazinePage[];
 }
 
-export const defaultImages: MagazineImage[] = [
-  { id: 'img-cover', url: null, caption: 'Imagem de Capa', position: 'cover' },
-  { id: 'img-topic1', url: null, caption: 'Ilustração Tópico I', position: 'topic1' },
-  { id: 'img-topic2', url: null, caption: 'Ilustração Tópico II', position: 'topic2' },
-  { id: 'img-topic3', url: null, caption: 'Ilustração Tópico III', position: 'topic3' },
-  { id: 'img-sidebar', url: null, caption: 'Ilustração Lateral', position: 'sidebar' },
-  { id: 'img-conclusion', url: null, caption: 'Ilustração Conclusão', position: 'conclusion' },
+// Helper to create default page images
+const createDefaultPageImages = (): MagazinePage[] => [
+  { 
+    id: 'page-1', 
+    pageNumber: 1, 
+    images: [
+      { id: 'p1-cover', url: null, caption: 'Imagem de Capa', size: 'fill', position: 'full-width' }
+    ]
+  },
+  { 
+    id: 'page-2', 
+    pageNumber: 2, 
+    images: [
+      { id: 'p2-sidebar', url: null, caption: 'Ilustração', size: 'medium', position: 'sidebar' }
+    ]
+  },
+  { 
+    id: 'page-3', 
+    pageNumber: 3, 
+    images: [
+      { id: 'p3-main', url: null, caption: 'Ilustração Tópico I', size: 'medium', position: 'sidebar' }
+    ]
+  },
+  { 
+    id: 'page-4', 
+    pageNumber: 4, 
+    images: [
+      { id: 'p4-main', url: null, caption: 'Ilustração Tópico II', size: 'large', position: 'inline' }
+    ]
+  },
+  { 
+    id: 'page-5', 
+    pageNumber: 5, 
+    images: [
+      { id: 'p5-main', url: null, caption: 'Ilustração Tópico III', size: 'medium', position: 'sidebar' }
+    ]
+  },
+  { 
+    id: 'page-6', 
+    pageNumber: 6, 
+    images: [
+      { id: 'p6-main', url: null, caption: 'Ilustração Conclusão', size: 'medium', position: 'sidebar' }
+    ]
+  },
+  { 
+    id: 'page-7', 
+    pageNumber: 7, 
+    images: [
+      { id: 'p7-main', url: null, caption: 'Ilustração', size: 'medium', position: 'sidebar' }
+    ]
+  },
+  { 
+    id: 'page-8', 
+    pageNumber: 8, 
+    images: [
+      { id: 'p8-main', url: null, caption: 'Ilustração Final', size: 'large', position: 'inline' }
+    ]
+  }
 ];
 
 export const defaultContent: MagazineContent = {
@@ -166,5 +224,5 @@ Somos salvos pela graça mediante a fé (Ef 2.8). Sem fé, não poderemos agrada
     { id: "q5", number: 5, question: "Como posso ser um mordomo fiel dos talentos e dons que Deus me concedeu?" },
     { id: "q6", number: 6, question: "De que forma a minha mordomia reflete o amor de Cristo ao próximo?" }
   ],
-  images: defaultImages
+  pageImages: createDefaultPageImages()
 };
