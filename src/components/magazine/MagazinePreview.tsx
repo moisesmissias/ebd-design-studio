@@ -47,12 +47,12 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
               </span>
             </div>
 
-            {/* Cover image area */}
-            <div className="flex-1 relative">
+            {/* Cover image area - fills remaining space */}
+            <div className="flex-1 relative min-h-0">
               <ImageUploader
                 imageUrl={getImage('cover')?.url || null}
                 onImageChange={(url) => handleImageChange('img-cover', url)}
-                aspectRatio="wide"
+                aspectRatio="auto"
                 className="absolute inset-0 w-full h-full"
                 placeholder="Clique para adicionar imagem de capa"
               />
@@ -92,9 +92,9 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
         <MagazinePage pageNumber={2}>
           <div className="p-8 pb-12 h-full flex flex-col">
             {/* Two column layout */}
-            <div className="grid grid-cols-[1fr_140px] gap-6 flex-1">
+            <div className="grid grid-cols-[1fr_160px] gap-6 flex-1">
               {/* Main content */}
-              <div>
+              <div className="flex flex-col">
                 <SectionTitle>Introdução</SectionTitle>
                 <BodyText className="mb-6">
                   {content.introduction}
@@ -108,17 +108,17 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
                 <ObjectivesList objectives={content.objectives} />
               </div>
 
-              {/* Sidebar */}
-              <div className="space-y-4">
+              {/* Sidebar - image fills remaining space */}
+              <div className="flex flex-col gap-4">
                 <ImageUploader
                   imageUrl={getImage('sidebar')?.url || null}
                   onImageChange={(url) => handleImageChange('img-sidebar', url)}
-                  aspectRatio="portrait"
-                  className="rounded-sm"
+                  aspectRatio="auto"
+                  className="rounded-sm flex-1 min-h-[200px]"
                   placeholder="Ilustração"
                 />
                 
-                <div className="bg-burgundy/10 p-3">
+                <div className="bg-burgundy/10 p-3 flex-shrink-0">
                   <p className="font-body text-xs italic text-burgundy text-center leading-relaxed">
                     "A quem muito foi dado, muito será exigido"
                   </p>
@@ -135,23 +135,23 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
         <MagazinePage pageNumber={3}>
           <div className="h-full flex flex-col">
             {/* Header accent */}
-            <div className="bg-burgundy h-2" />
+            <div className="bg-burgundy h-2 flex-shrink-0" />
             
-            <div className="p-8 pb-12 flex-1">
+            <div className="p-8 pb-12 flex-1 flex flex-col">
               <BiblicalReadingBox 
                 text={content.biblicalReading} 
                 reference={content.biblicalReadingReference} 
               />
 
               {content.topics[0] && (
-                <div className="mt-6">
+                <div className="mt-6 flex-1 flex flex-col">
                   <TopicHeader 
                     number={content.topics[0].number} 
                     title={content.topics[0].title}
                     variant="featured"
                   />
                   
-                  <div className="grid grid-cols-[1fr_130px] gap-5 mt-4">
+                  <div className="grid grid-cols-[1fr_150px] gap-5 mt-4 flex-1">
                     <div>
                       {content.topics[0].subtopics.slice(0, 2).map((sub) => (
                         <div key={sub.id}>
@@ -161,15 +161,16 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
                       ))}
                     </div>
                     
-                    <div className="pt-6">
+                    {/* Image fills available vertical space */}
+                    <div className="flex flex-col">
                       <ImageUploader
                         imageUrl={getImage('topic1')?.url || null}
                         onImageChange={(url) => handleImageChange('img-topic1', url)}
-                        aspectRatio="square"
-                        className="rounded-sm mb-3"
+                        aspectRatio="auto"
+                        className="rounded-sm flex-1 min-h-[180px]"
                         placeholder="Imagem"
                       />
-                      <p className="font-sans text-[9px] text-muted-foreground text-center italic">
+                      <p className="font-sans text-[9px] text-muted-foreground text-center italic mt-2 flex-shrink-0">
                         Ilustração do Tópico I
                       </p>
                     </div>
@@ -182,10 +183,10 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
 
         {/* ========== PÁGINA 4: TÓPICO I (parte 2) + TÓPICO II ========== */}
         <MagazinePage pageNumber={4}>
-          <div className="p-8 pb-12">
+          <div className="p-8 pb-12 h-full flex flex-col">
             {/* Continue Topic I if there's a 3rd subtopic */}
             {content.topics[0]?.subtopics[2] && (
-              <div className="mb-6 pb-6 border-b border-gold/30">
+              <div className="mb-6 pb-6 border-b border-gold/30 flex-shrink-0">
                 <SubtopicHeader 
                   number={content.topics[0].subtopics[2].number} 
                   title={content.topics[0].subtopics[2].title} 
@@ -196,19 +197,19 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
 
             {/* Topic II */}
             {content.topics[1] && (
-              <>
+              <div className="flex-1 flex flex-col">
                 <TopicHeader 
                   number={content.topics[1].number} 
                   title={content.topics[1].title} 
                 />
                 
-                {/* Featured image for topic 2 */}
-                <div className="grid grid-cols-2 gap-4 my-4">
+                {/* Featured image + quote - fills available space */}
+                <div className="grid grid-cols-2 gap-4 my-4 flex-1 min-h-[150px]">
                   <ImageUploader
                     imageUrl={getImage('topic2')?.url || null}
                     onImageChange={(url) => handleImageChange('img-topic2', url)}
-                    aspectRatio="landscape"
-                    className="rounded-sm"
+                    aspectRatio="auto"
+                    className="rounded-sm h-full"
                     placeholder="Ilustração Tópico II"
                   />
                   <div className="bg-burgundy p-4 flex flex-col justify-center">
@@ -219,20 +220,22 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
                   </div>
                 </div>
 
-                {content.topics[1].subtopics.map((sub) => (
-                  <div key={sub.id}>
-                    <SubtopicHeader number={sub.number} title={sub.title} />
-                    <BodyText>{sub.content}</BodyText>
-                  </div>
-                ))}
-              </>
+                <div className="flex-shrink-0">
+                  {content.topics[1].subtopics.map((sub) => (
+                    <div key={sub.id}>
+                      <SubtopicHeader number={sub.number} title={sub.title} />
+                      <BodyText>{sub.content}</BodyText>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </MagazinePage>
 
         {/* ========== PÁGINA 5: CONHECENDO UM POUCO MAIS + TÓPICO III ========== */}
         <MagazinePage pageNumber={5} variant="accent">
-          <div className="p-8 pb-12">
+          <div className="p-8 pb-12 h-full flex flex-col">
             <HighlightBox title="Conhecendo um pouco mais" variant="info">
               <p>
                 No Novo Testamento, o verbo pisteuõ ('creio, confio') e o substantivo pistis ('fé') 
@@ -245,20 +248,21 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
             <Ornament />
 
             {content.topics[2] && (
-              <>
+              <div className="flex-1 flex flex-col">
                 <TopicHeader 
                   number={content.topics[2].number} 
                   title={content.topics[2].title}
                   variant="featured"
                 />
                 
-                <div className="grid grid-cols-[130px_1fr] gap-5">
-                  <div className="space-y-3">
+                <div className="grid grid-cols-[150px_1fr] gap-5 flex-1">
+                  {/* Image fills available vertical space */}
+                  <div className="flex flex-col">
                     <ImageUploader
                       imageUrl={getImage('topic3')?.url || null}
                       onImageChange={(url) => handleImageChange('img-topic3', url)}
-                      aspectRatio="portrait"
-                      className="rounded-sm"
+                      aspectRatio="auto"
+                      className="rounded-sm flex-1 min-h-[200px]"
                       placeholder="Imagem"
                     />
                   </div>
@@ -272,7 +276,7 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
                     ))}
                   </div>
                 </div>
-              </>
+              </div>
             )}
           </div>
         </MagazinePage>
@@ -281,7 +285,7 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
         <MagazinePage pageNumber={6}>
           <div className="h-full flex flex-col">
             {/* Full-width highlight section */}
-            <div className="bg-burgundy p-6">
+            <div className="bg-burgundy p-6 flex-shrink-0">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-full bg-gold/20 flex items-center justify-center flex-shrink-0">
                   <span className="font-display text-2xl text-gold">?</span>
@@ -299,9 +303,9 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
               </div>
             </div>
 
-            <div className="p-8 pb-12 flex-1">
-              <div className="grid grid-cols-[1fr_140px] gap-6">
-                <div>
+            <div className="p-8 pb-12 flex-1 flex flex-col">
+              <div className="grid grid-cols-[1fr_160px] gap-6 flex-1">
+                <div className="flex flex-col">
                   <SectionTitle>Conclusão</SectionTitle>
                   <BodyText className="mb-6">{content.conclusion}</BodyText>
                   
@@ -310,12 +314,13 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
                   />
                 </div>
 
-                <div>
+                {/* Image fills remaining vertical space */}
+                <div className="flex flex-col">
                   <ImageUploader
                     imageUrl={getImage('conclusion')?.url || null}
                     onImageChange={(url) => handleImageChange('img-conclusion', url)}
-                    aspectRatio="portrait"
-                    className="rounded-sm"
+                    aspectRatio="auto"
+                    className="rounded-sm flex-1 min-h-[180px]"
                     placeholder="Ilustração"
                   />
                 </div>
@@ -328,12 +333,12 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
         <MagazinePage pageNumber={7} variant="default">
           <div className="h-full flex flex-col">
             {/* Decorative header */}
-            <div className="bg-navy py-4 px-8">
+            <div className="bg-navy py-4 px-8 flex-shrink-0">
               <SectionTitle variant="light">Subsídios Teológicos</SectionTitle>
             </div>
 
-            <div className="p-8 pb-12 flex-1">
-              <div className="bg-cream/50 p-6 border-l-4 border-gold">
+            <div className="p-8 pb-12 flex-1 flex flex-col">
+              <div className="bg-cream/50 p-6 border-l-4 border-gold flex-shrink-0">
                 <div className="columns-2 gap-8">
                   {content.theologicalSubsidies.split('\n\n').map((paragraph, index) => (
                     <p key={index} className="font-body text-sm leading-relaxed text-foreground/85 mb-4 text-justify break-inside-avoid">
@@ -343,27 +348,39 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
                 </div>
               </div>
 
-              <Ornament className="my-8" />
+              <Ornament className="my-6 flex-shrink-0" />
 
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-burgundy/10 p-4 text-center">
-                  <span className="font-display text-3xl font-bold text-burgundy">480+</span>
-                  <p className="font-sans text-[10px] text-muted-foreground uppercase tracking-wider mt-1">
-                    vezes "fé" no NT
-                  </p>
+              {/* Stats + image section fills remaining space */}
+              <div className="flex-1 grid grid-cols-[1fr_180px] gap-4 min-h-[120px]">
+                <div className="grid grid-cols-3 gap-3 content-start">
+                  <div className="bg-burgundy/10 p-4 text-center">
+                    <span className="font-display text-2xl font-bold text-burgundy">480+</span>
+                    <p className="font-sans text-[9px] text-muted-foreground uppercase tracking-wider mt-1">
+                      vezes "fé" no NT
+                    </p>
+                  </div>
+                  <div className="bg-navy/10 p-4 text-center">
+                    <span className="font-display text-lg font-bold text-navy">1Co 4.2</span>
+                    <p className="font-sans text-[9px] text-muted-foreground uppercase tracking-wider mt-1">
+                      Fidelidade requerida
+                    </p>
+                  </div>
+                  <div className="bg-gold/20 p-4 text-center">
+                    <span className="font-display text-lg font-bold text-burgundy">Lc 16.10</span>
+                    <p className="font-sans text-[9px] text-muted-foreground uppercase tracking-wider mt-1">
+                      Fiel no pouco
+                    </p>
+                  </div>
                 </div>
-                <div className="bg-navy/10 p-4 text-center">
-                  <span className="font-display text-3xl font-bold text-navy">1Co 4.2</span>
-                  <p className="font-sans text-[10px] text-muted-foreground uppercase tracking-wider mt-1">
-                    Fidelidade requerida
-                  </p>
-                </div>
-                <div className="bg-gold/20 p-4 text-center">
-                  <span className="font-display text-3xl font-bold text-burgundy">Lc 16.10</span>
-                  <p className="font-sans text-[10px] text-muted-foreground uppercase tracking-wider mt-1">
-                    Fiel no pouco
-                  </p>
-                </div>
+                
+                {/* Image fills vertical space */}
+                <ImageUploader
+                  imageUrl={getImage('subsidies')?.url || null}
+                  onImageChange={(url) => handleImageChange('img-subsidies', url)}
+                  aspectRatio="auto"
+                  className="rounded-sm h-full min-h-[100px]"
+                  placeholder="Ilustração"
+                />
               </div>
             </div>
           </div>
@@ -373,30 +390,41 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
         <MagazinePage pageNumber={8}>
           <div className="h-full flex flex-col">
             {/* Header */}
-            <div className="bg-burgundy px-8 py-6">
+            <div className="bg-burgundy px-8 py-6 flex-shrink-0">
               <SectionTitle variant="light">Perguntas para Reflexão</SectionTitle>
               <p className="font-body text-sm text-primary-foreground/70 italic -mt-2">
                 Medite nestas questões para aprofundar sua compreensão da lição
               </p>
             </div>
 
-            <div className="p-8 pb-12 flex-1">
-              <div className="grid grid-cols-2 gap-x-6">
+            <div className="p-8 pb-12 flex-1 flex flex-col">
+              <div className="grid grid-cols-2 gap-x-6 flex-shrink-0">
                 {content.reflectionQuestions.map((q) => (
                   <QuestionItem key={q.id} number={q.number} question={q.question} />
                 ))}
               </div>
 
-              <Ornament className="mt-8" />
+              <Ornament className="my-6 flex-shrink-0" />
 
-              <div className="text-center mt-6 bg-cream/50 p-6 border border-gold/30">
-                <p className="font-display text-xl italic text-burgundy">
-                  "A quem muito foi dado, muito será exigido"
-                </p>
-                <p className="font-sans text-sm text-gold font-semibold mt-2">— Lucas 12.48</p>
+              {/* Image + quote section fills remaining space */}
+              <div className="flex-1 grid grid-cols-[1fr_1fr] gap-4 min-h-[100px]">
+                <ImageUploader
+                  imageUrl={getImage('questions')?.url || null}
+                  onImageChange={(url) => handleImageChange('img-questions', url)}
+                  aspectRatio="auto"
+                  className="rounded-sm h-full"
+                  placeholder="Ilustração final"
+                />
+                
+                <div className="bg-cream/50 p-6 border border-gold/30 flex flex-col justify-center">
+                  <p className="font-display text-xl italic text-burgundy text-center">
+                    "A quem muito foi dado, muito será exigido"
+                  </p>
+                  <p className="font-sans text-sm text-gold font-semibold mt-2 text-center">— Lucas 12.48</p>
+                </div>
               </div>
 
-              <div className="mt-8 pt-4 border-t border-gold/30 text-center">
+              <div className="mt-6 pt-4 border-t border-gold/30 text-center flex-shrink-0">
                 <span className="font-sans text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                   Revista de Escola Bíblica Dominical • Edição Especial
                 </span>
