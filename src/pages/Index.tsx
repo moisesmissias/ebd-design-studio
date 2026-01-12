@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { MagazineContent, defaultContent, MagazineImage } from '@/types/magazine';
+import { MagazineContent, defaultContent, PageImage } from '@/types/magazine';
 import { ContentEditor } from '@/components/magazine/ContentEditor';
 import { MagazinePreview } from '@/components/magazine/MagazinePreview';
 import { usePdfExport } from '@/hooks/usePdfExport';
@@ -18,17 +18,20 @@ const Index = () => {
     exportToPdf(previewRef.current, filename);
   };
 
-  const handleImageChange = (imageId: string, url: string | null) => {
+  const handlePageImagesChange = (pageId: string, images: PageImage[]) => {
     setContent(prev => ({
       ...prev,
-      images: prev.images.map(img => 
-        img.id === imageId ? { ...img, url } : img
+      pageImages: prev.pageImages.map(page => 
+        page.id === pageId ? { ...page, images } : page
       )
     }));
   };
 
-  const imagesWithContent = content.images?.filter(img => img.url).length || 0;
-  const totalImageSlots = content.images?.length || 0;
+  // Count total images with content
+  const imagesWithContent = content.pageImages?.reduce((total, page) => 
+    total + page.images.filter(img => img.url).length, 0) || 0;
+  const totalImageSlots = content.pageImages?.reduce((total, page) => 
+    total + page.images.length, 0) || 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -42,7 +45,7 @@ const Index = () => {
                 Diagramação de Revista EBD
               </h1>
               <p className="text-xs text-primary-foreground/70">
-                Layout Profissional • 8 páginas • Clique nas áreas para adicionar imagens
+                Layout Profissional • Clique em + para adicionar imagens
               </p>
             </div>
           </div>
@@ -51,7 +54,7 @@ const Index = () => {
             <div className="hidden md:flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full">
               <Image className="w-4 h-4 text-gold" />
               <span className="text-xs">
-                {imagesWithContent}/{totalImageSlots} imagens
+                {imagesWithContent} imagens
               </span>
             </div>
             
@@ -108,7 +111,7 @@ const Index = () => {
                   <MagazinePreview 
                     ref={previewRef} 
                     content={content} 
-                    onImageChange={handleImageChange}
+                    onPageImagesChange={handlePageImagesChange}
                   />
                 </div>
               </div>
@@ -125,7 +128,7 @@ const Index = () => {
               Editor de Conteúdo
             </h2>
             <p className="text-xs text-muted-foreground mb-4">
-              Edite os campos abaixo. Clique nas áreas de imagem no preview para adicionar ilustrações.
+              Edite os campos abaixo. Clique em <strong>+</strong> no preview para adicionar imagens.
             </p>
             <ContentEditor content={content} onChange={setContent} />
           </div>
@@ -145,7 +148,7 @@ const Index = () => {
               <MagazinePreview 
                 ref={previewRef} 
                 content={content} 
-                onImageChange={handleImageChange}
+                onPageImagesChange={handlePageImagesChange}
               />
             </div>
           </div>

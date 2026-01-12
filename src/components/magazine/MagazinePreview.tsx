@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { MagazineContent } from '@/types/magazine';
+import { MagazineContent, PageImage } from '@/types/magazine';
 import {
   MagazinePage,
   GoldenTextBox,
@@ -14,22 +14,27 @@ import {
   Ornament,
   PullQuote
 } from './MagazinePage';
-import { ImageUploader } from './ImageUploader';
+import { FlexibleImageContainer, InlineImageSlot } from './PageImageManager';
 
 interface MagazinePreviewProps {
   content: MagazineContent;
-  onImageChange?: (imageId: string, url: string | null) => void;
+  onPageImagesChange?: (pageId: string, images: PageImage[]) => void;
 }
 
 export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
-  ({ content, onImageChange }, ref) => {
-    const getImage = (position: string) => {
-      return content.images?.find(img => img.position === position);
+  ({ content, onPageImagesChange }, ref) => {
+    
+    const getPageImages = (pageNumber: number) => {
+      const page = content.pageImages?.find(p => p.pageNumber === pageNumber);
+      return page?.images || [];
     };
 
-    const handleImageChange = (imageId: string, url: string | null) => {
-      onImageChange?.(imageId, url);
+    const handlePageImagesChange = (pageId: string, images: PageImage[]) => {
+      onPageImagesChange?.(pageId, images);
     };
+
+    // Get cover image for page 1
+    const coverImage = getPageImages(1)[0]?.url;
 
     return (
       <div ref={ref} className="space-y-6 bg-muted/30 p-8 rounded-lg">
@@ -38,7 +43,7 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
         <MagazinePage pageNumber={1} showBorder={false}>
           <div className="h-full flex flex-col">
             {/* Header bar */}
-            <div className="bg-burgundy px-6 py-3 flex justify-between items-center">
+            <div className="bg-burgundy px-6 py-3 flex justify-between items-center flex-shrink-0">
               <span className="font-sans text-[10px] uppercase tracking-[0.3em] text-primary-foreground/70">
                 Escola Bíblica Dominical
               </span>
@@ -49,33 +54,48 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
 
             {/* Cover image area - fills remaining space */}
             <div className="flex-1 relative min-h-0">
-              <ImageUploader
-                imageUrl={getImage('cover')?.url || null}
-                onImageChange={(url) => handleImageChange('img-cover', url)}
-                aspectRatio="auto"
-                className="absolute inset-0 w-full h-full"
-                placeholder="Clique para adicionar imagem de capa"
+              <FlexibleImageContainer
+                pageId="page-1"
+                images={getPageImages(1)}
+                onImagesChange={(images) => handlePageImagesChange('page-1', images)}
+                minHeight="100%"
+                maxImages={1}
               />
               
-              {/* Overlay content */}
-              <div className="absolute inset-0 bg-gradient-to-t from-burgundy via-burgundy/60 to-transparent flex flex-col justify-end p-8">
-                <span className="font-sans text-xs uppercase tracking-[0.2em] text-gold mb-2">
-                  {content.lessonNumber}
-                </span>
-                <h1 className="font-display text-4xl font-bold text-primary-foreground leading-tight mb-4">
-                  {content.lessonTitle}
-                </h1>
-                <div className="w-24 h-1 bg-gold mb-4" />
-                <p className="font-body text-sm text-primary-foreground/80 max-w-md leading-relaxed">
-                  {content.introduction.split('\n')[0].substring(0, 150)}...
-                </p>
-              </div>
+              {/* Overlay content - only show when there's an image */}
+              {coverImage && (
+                <div className="absolute inset-0 bg-gradient-to-t from-burgundy via-burgundy/60 to-transparent flex flex-col justify-end p-8 pointer-events-none">
+                  <span className="font-sans text-xs uppercase tracking-[0.2em] text-gold mb-2">
+                    {content.lessonNumber}
+                  </span>
+                  <h1 className="font-display text-4xl font-bold text-primary-foreground leading-tight mb-4">
+                    {content.lessonTitle}
+                  </h1>
+                  <div className="w-24 h-1 bg-gold mb-4" />
+                  <p className="font-body text-sm text-primary-foreground/80 max-w-md leading-relaxed">
+                    {content.introduction.split('\n')[0].substring(0, 150)}...
+                  </p>
+                </div>
+              )}
+              
+              {/* Text overlay when no image */}
+              {!coverImage && (
+                <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-8 pointer-events-none">
+                  <span className="font-sans text-xs uppercase tracking-[0.2em] text-gold mb-4">
+                    {content.lessonNumber}
+                  </span>
+                  <h1 className="font-display text-3xl font-bold text-burgundy leading-tight mb-4">
+                    {content.lessonTitle}
+                  </h1>
+                  <div className="w-24 h-1 bg-gold mb-4" />
+                </div>
+              )}
             </div>
 
             {/* Bottom summary bar */}
-            <div className="bg-navy p-4">
+            <div className="bg-navy p-4 flex-shrink-0">
               <div className="grid grid-cols-3 gap-4 text-center">
-                {content.topics.map((topic, idx) => (
+                {content.topics.map((topic) => (
                   <div key={topic.id} className="border-l border-primary-foreground/20 first:border-l-0 pl-3 first:pl-0">
                     <span className="font-display text-xs text-gold">{topic.number}</span>
                     <p className="font-sans text-[9px] text-primary-foreground/70 uppercase tracking-wider mt-1 line-clamp-2">
@@ -108,14 +128,14 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
                 <ObjectivesList objectives={content.objectives} />
               </div>
 
-              {/* Sidebar - image fills remaining space */}
+              {/* Sidebar with flexible images */}
               <div className="flex flex-col gap-4">
-                <ImageUploader
-                  imageUrl={getImage('sidebar')?.url || null}
-                  onImageChange={(url) => handleImageChange('img-sidebar', url)}
-                  aspectRatio="auto"
-                  className="rounded-sm flex-1 min-h-[200px]"
-                  placeholder="Ilustração"
+                <FlexibleImageContainer
+                  pageId="page-2"
+                  images={getPageImages(2)}
+                  onImagesChange={(images) => handlePageImagesChange('page-2', images)}
+                  minHeight="200px"
+                  maxImages={2}
                 />
                 
                 <div className="bg-burgundy/10 p-3 flex-shrink-0">
@@ -152,7 +172,7 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
                   />
                   
                   <div className="grid grid-cols-[1fr_150px] gap-5 mt-4 flex-1">
-                    <div>
+                    <div className="flex-shrink-0">
                       {content.topics[0].subtopics.slice(0, 2).map((sub) => (
                         <div key={sub.id}>
                           <SubtopicHeader number={sub.number} title={sub.title} />
@@ -161,14 +181,14 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
                       ))}
                     </div>
                     
-                    {/* Image fills available vertical space */}
+                    {/* Flexible image container */}
                     <div className="flex flex-col">
-                      <ImageUploader
-                        imageUrl={getImage('topic1')?.url || null}
-                        onImageChange={(url) => handleImageChange('img-topic1', url)}
-                        aspectRatio="auto"
-                        className="rounded-sm flex-1 min-h-[180px]"
-                        placeholder="Imagem"
+                      <FlexibleImageContainer
+                        pageId="page-3"
+                        images={getPageImages(3)}
+                        onImagesChange={(images) => handlePageImagesChange('page-3', images)}
+                        minHeight="180px"
+                        maxImages={2}
                       />
                       <p className="font-sans text-[9px] text-muted-foreground text-center italic mt-2 flex-shrink-0">
                         Ilustração do Tópico I
@@ -203,14 +223,14 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
                   title={content.topics[1].title} 
                 />
                 
-                {/* Featured image + quote - fills available space */}
-                <div className="grid grid-cols-2 gap-4 my-4 flex-1 min-h-[150px]">
-                  <ImageUploader
-                    imageUrl={getImage('topic2')?.url || null}
-                    onImageChange={(url) => handleImageChange('img-topic2', url)}
-                    aspectRatio="auto"
-                    className="rounded-sm h-full"
-                    placeholder="Ilustração Tópico II"
+                {/* Flexible image + quote section */}
+                <div className="grid grid-cols-2 gap-4 my-4 flex-1 min-h-[120px]">
+                  <FlexibleImageContainer
+                    pageId="page-4"
+                    images={getPageImages(4)}
+                    onImagesChange={(images) => handlePageImagesChange('page-4', images)}
+                    minHeight="100%"
+                    maxImages={2}
                   />
                   <div className="bg-burgundy p-4 flex flex-col justify-center">
                     <p className="font-body text-sm italic text-primary-foreground/90 leading-relaxed">
@@ -256,18 +276,16 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
                 />
                 
                 <div className="grid grid-cols-[150px_1fr] gap-5 flex-1">
-                  {/* Image fills available vertical space */}
-                  <div className="flex flex-col">
-                    <ImageUploader
-                      imageUrl={getImage('topic3')?.url || null}
-                      onImageChange={(url) => handleImageChange('img-topic3', url)}
-                      aspectRatio="auto"
-                      className="rounded-sm flex-1 min-h-[200px]"
-                      placeholder="Imagem"
-                    />
-                  </div>
+                  {/* Flexible image fills vertical space */}
+                  <FlexibleImageContainer
+                    pageId="page-5"
+                    images={getPageImages(5)}
+                    onImagesChange={(images) => handlePageImagesChange('page-5', images)}
+                    minHeight="200px"
+                    maxImages={2}
+                  />
                   
-                  <div>
+                  <div className="flex-shrink-0">
                     {content.topics[2].subtopics.map((sub) => (
                       <div key={sub.id}>
                         <SubtopicHeader number={sub.number} title={sub.title} />
@@ -314,16 +332,14 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
                   />
                 </div>
 
-                {/* Image fills remaining vertical space */}
-                <div className="flex flex-col">
-                  <ImageUploader
-                    imageUrl={getImage('conclusion')?.url || null}
-                    onImageChange={(url) => handleImageChange('img-conclusion', url)}
-                    aspectRatio="auto"
-                    className="rounded-sm flex-1 min-h-[180px]"
-                    placeholder="Ilustração"
-                  />
-                </div>
+                {/* Flexible image sidebar */}
+                <FlexibleImageContainer
+                  pageId="page-6"
+                  images={getPageImages(6)}
+                  onImagesChange={(images) => handlePageImagesChange('page-6', images)}
+                  minHeight="180px"
+                  maxImages={2}
+                />
               </div>
             </div>
           </div>
@@ -350,8 +366,8 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
 
               <Ornament className="my-6 flex-shrink-0" />
 
-              {/* Stats + image section fills remaining space */}
-              <div className="flex-1 grid grid-cols-[1fr_180px] gap-4 min-h-[120px]">
+              {/* Stats + flexible image section fills remaining space */}
+              <div className="flex-1 grid grid-cols-[1fr_180px] gap-4 min-h-[100px]">
                 <div className="grid grid-cols-3 gap-3 content-start">
                   <div className="bg-burgundy/10 p-4 text-center">
                     <span className="font-display text-2xl font-bold text-burgundy">480+</span>
@@ -373,13 +389,13 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
                   </div>
                 </div>
                 
-                {/* Image fills vertical space */}
-                <ImageUploader
-                  imageUrl={getImage('subsidies')?.url || null}
-                  onImageChange={(url) => handleImageChange('img-subsidies', url)}
-                  aspectRatio="auto"
-                  className="rounded-sm h-full min-h-[100px]"
-                  placeholder="Ilustração"
+                {/* Flexible image */}
+                <FlexibleImageContainer
+                  pageId="page-7"
+                  images={getPageImages(7)}
+                  onImagesChange={(images) => handlePageImagesChange('page-7', images)}
+                  minHeight="100px"
+                  maxImages={2}
                 />
               </div>
             </div>
@@ -406,14 +422,14 @@ export const MagazinePreview = forwardRef<HTMLDivElement, MagazinePreviewProps>(
 
               <Ornament className="my-6 flex-shrink-0" />
 
-              {/* Image + quote section fills remaining space */}
+              {/* Flexible image + quote section fills remaining space */}
               <div className="flex-1 grid grid-cols-[1fr_1fr] gap-4 min-h-[100px]">
-                <ImageUploader
-                  imageUrl={getImage('questions')?.url || null}
-                  onImageChange={(url) => handleImageChange('img-questions', url)}
-                  aspectRatio="auto"
-                  className="rounded-sm h-full"
-                  placeholder="Ilustração final"
+                <FlexibleImageContainer
+                  pageId="page-8"
+                  images={getPageImages(8)}
+                  onImagesChange={(images) => handlePageImagesChange('page-8', images)}
+                  minHeight="100%"
+                  maxImages={2}
                 />
                 
                 <div className="bg-cream/50 p-6 border border-gold/30 flex flex-col justify-center">
