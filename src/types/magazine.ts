@@ -19,18 +19,32 @@ export interface ReflectionQuestion {
   question: string;
 }
 
+export type ElementSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full' | 'small' | 'medium' | 'large' | 'fill';
+
 export interface PageImage {
   id: string;
   url: string | null;
   caption?: string;
-  size: 'small' | 'medium' | 'large' | 'fill'; // Controls how much space it takes
+  size: ElementSize;
+  width?: number; // percentage 0-100
+  height?: number; // pixels
   position: 'inline' | 'sidebar' | 'full-width' | 'float-left' | 'float-right';
+}
+
+export interface PageElement {
+  id: string;
+  type: 'image' | 'text' | 'card' | 'quote' | 'box';
+  content: any;
+  size: ElementSize;
+  width?: number;
+  height?: number;
 }
 
 export interface MagazinePage {
   id: string;
   pageNumber: number;
   images: PageImage[];
+  elements?: PageElement[];
 }
 
 export interface MagazineContent {

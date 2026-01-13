@@ -1,7 +1,25 @@
-import React, { useRef, useState } from 'react';
-import { Plus, X, Maximize2, Minimize2, Move, ImagePlus } from 'lucide-react';
+import React, { useRef, useState, useCallback } from 'react';
+import { Plus, X, Maximize2, Minimize2, Move, ImagePlus, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  horizontalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
-import { PageImage } from '@/types/magazine';
+import { PageImage, ElementSize } from '@/types/magazine';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,60 +28,121 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-interface ImageSlotProps {
+// Sortable Image Slot with drag-and-drop and resize
+interface SortableImageSlotProps {
   image: PageImage;
   onImageChange: (url: string | null) => void;
-  onSizeChange: (size: PageImage['size']) => void;
+  onSizeChange: (size: ElementSize) => void;
+  onHeightChange: (height: number) => void;
   onRemove: () => void;
-  fillSpace?: boolean;
 }
 
-export const ImageSlot: React.FC<ImageSlotProps> = ({
+const SortableImageSlot: React.FC<SortableImageSlotProps> = ({
   image,
   onImageChange,
   onSizeChange,
+  onHeightChange,
   onRemove,
-  fillSpace = false
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: image.id });
 
-  const handleClick = () => {
-    fileInputRef.current?.click();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeStartY, setResizeStartY] = useState(0);
+  const [startHeight, setStartHeight] = useState(0);
+  const elementRef = useRef<HTMLDivElement>(null);
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.8 : 1,
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!isDragging && !isResizing) {
+      fileInputRef.current?.click();
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        onImageChange(reader.result as string);
-      };
+      reader.onloadend = () => onImageChange(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  const sizeClasses = {
-    small: 'h-24',
-    medium: 'h-40',
-    large: 'h-56',
-    fill: 'flex-1 min-h-[120px]'
+  // Resize handler
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const currentHeight = elementRef.current?.clientHeight || 150;
+    setResizeStartY(e.clientY);
+    setStartHeight(currentHeight);
+    setIsResizing(true);
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaY = moveEvent.clientY - e.clientY;
+      const newHeight = Math.max(80, startHeight + deltaY);
+      onHeightChange(newHeight);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [startHeight, onHeightChange]);
+
+  const sizeHeights: Record<ElementSize, string> = {
+    xs: '60px',
+    sm: '100px',
+    small: '100px',
+    md: '150px',
+    medium: '150px',
+    lg: '200px',
+    large: '200px',
+    xl: '280px',
+    full: '100%',
+    fill: '100%',
   };
 
-  const aspectClasses = {
-    small: 'aspect-[4/3]',
-    medium: 'aspect-[3/2]',
-    large: 'aspect-[16/10]',
-    fill: ''
-  };
+  const currentHeight = image.height 
+    ? `${image.height}px` 
+    : sizeHeights[image.size] || '150px';
+
+  const isFillSize = image.size === 'full' || image.size === 'fill';
 
   return (
-    <div 
+    <div
+      ref={(node) => {
+        setNodeRef(node);
+        (elementRef as any).current = node;
+      }}
+      style={{
+        ...style,
+        height: isFillSize ? undefined : currentHeight,
+        minHeight: '80px',
+      }}
       className={cn(
         "relative group cursor-pointer overflow-hidden bg-muted/30 border-2 border-dashed border-muted-foreground/20 hover:border-gold/50 transition-all rounded-sm",
-        fillSpace ? 'flex-1 min-h-[100px]' : sizeClasses[image.size],
-        !fillSpace && image.size !== 'fill' && aspectClasses[image.size]
+        isDragging && "shadow-xl ring-2 ring-gold/50",
+        isResizing && "ring-2 ring-blue-500/50",
+        isFillSize && "flex-1"
       )}
-      onClick={handleClick}
     >
       <input
         ref={fileInputRef}
@@ -73,120 +152,108 @@ export const ImageSlot: React.FC<ImageSlotProps> = ({
         className="hidden"
       />
 
-      {image.url ? (
-        <>
-          <img
-            src={image.url}
-            alt={image.caption || "Imagem"}
-            className="w-full h-full object-cover"
-          />
-          
-          {/* Controls overlay */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors">
-            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                  <button className="w-7 h-7 bg-white/90 hover:bg-white text-foreground rounded flex items-center justify-center shadow-md">
-                    <Move className="w-4 h-4" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenuItem onClick={() => onSizeChange('small')}>
-                    <Minimize2 className="w-4 h-4 mr-2" /> Pequena
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onSizeChange('medium')}>
-                    <Move className="w-4 h-4 mr-2" /> Média
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onSizeChange('large')}>
-                    <Maximize2 className="w-4 h-4 mr-2" /> Grande
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onSizeChange('fill')}>
-                    <Maximize2 className="w-4 h-4 mr-2" /> Preencher espaço
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove();
-                }}
-                className="w-7 h-7 bg-destructive text-destructive-foreground rounded flex items-center justify-center shadow-md"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* Drag handle */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-0 left-0 w-8 h-8 cursor-grab active:cursor-grabbing z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-burgundy/90 rounded-br-sm"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical className="w-4 h-4 text-white" />
+      </div>
+
+      {/* Image content */}
+      <div className="w-full h-full" onClick={handleClick}>
+        {image.url ? (
+          <>
+            <img
+              src={image.url}
+              alt={image.caption || "Imagem"}
+              className="w-full h-full object-cover"
+            />
             
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              <span className="text-white text-xs font-medium bg-black/50 px-3 py-1.5 rounded">
-                Trocar imagem
-              </span>
+            {/* Controls overlay */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors pointer-events-none">
+              <div className="absolute top-0 right-0 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <button className="w-7 h-7 bg-white/90 hover:bg-white text-foreground flex items-center justify-center shadow-md">
+                      <Move className="w-4 h-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuItem onClick={() => onSizeChange('sm')}>
+                      <Minimize2 className="w-4 h-4 mr-2" /> Pequena (100px)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onSizeChange('md')}>
+                      <Move className="w-4 h-4 mr-2" /> Média (150px)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onSizeChange('lg')}>
+                      <Maximize2 className="w-4 h-4 mr-2" /> Grande (200px)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onSizeChange('xl')}>
+                      <Maximize2 className="w-4 h-4 mr-2" /> Extra Grande (280px)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onSizeChange('full')}>
+                      <Maximize2 className="w-4 h-4 mr-2" /> Preencher espaço
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove();
+                  }}
+                  className="w-7 h-7 bg-destructive text-destructive-foreground flex items-center justify-center shadow-md"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-white text-xs font-medium bg-black/50 px-3 py-1.5 rounded pointer-events-none">
+                  Clique para trocar • Arraste para mover
+                </span>
+              </div>
             </div>
-          </div>
-        </>
-      ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/50 group-hover:text-gold/70 transition-colors p-4">
-          <ImagePlus className="w-8 h-8 mb-2 flex-shrink-0" />
-          <span className="text-[10px] uppercase tracking-wider text-center">
-            Clique para adicionar
-          </span>
-          {image.caption && (
-            <span className="text-[9px] text-muted-foreground/40 mt-1">
-              {image.caption}
+          </>
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/50 group-hover:text-gold/70 transition-colors p-4">
+            <ImagePlus className="w-8 h-8 mb-2 flex-shrink-0" />
+            <span className="text-[10px] uppercase tracking-wider text-center">
+              Clique para adicionar
             </span>
-          )}
-        </div>
-      )}
+            {image.caption && (
+              <span className="text-[9px] text-muted-foreground/40 mt-1">
+                {image.caption}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Resize handle (bottom) */}
+      <div
+        onMouseDown={handleResizeStart}
+        className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize opacity-0 group-hover:opacity-100 bg-gradient-to-t from-gold/40 to-transparent hover:from-gold/60 transition-opacity flex items-end justify-center pb-0.5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-12 h-1 bg-gold/60 rounded-full" />
+      </div>
     </div>
   );
 };
 
-interface AddImageButtonProps {
-  onAdd: (size: PageImage['size']) => void;
-  compact?: boolean;
-}
-
-export const AddImageButton: React.FC<AddImageButtonProps> = ({ onAdd, compact = false }) => {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size={compact ? "sm" : "default"}
-          className={cn(
-            "border-dashed border-muted-foreground/30 hover:border-gold hover:bg-gold/5",
-            compact ? "h-8 px-2" : "gap-2"
-          )}
-        >
-          <Plus className={cn(compact ? "w-3 h-3" : "w-4 h-4")} />
-          {!compact && <span className="text-xs">Adicionar Imagem</span>}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        <DropdownMenuItem onClick={() => onAdd('small')}>
-          <Minimize2 className="w-4 h-4 mr-2" /> Imagem pequena
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onAdd('medium')}>
-          <Move className="w-4 h-4 mr-2" /> Imagem média
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onAdd('large')}>
-          <Maximize2 className="w-4 h-4 mr-2" /> Imagem grande
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onAdd('fill')}>
-          <Maximize2 className="w-4 h-4 mr-2" /> Preencher espaço
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-};
-
+// Main Page Image Manager with drag-and-drop
 interface PageImageManagerProps {
   pageId: string;
   images: PageImage[];
   onImagesChange: (images: PageImage[]) => void;
-  layout?: 'column' | 'row' | 'grid' | 'sidebar';
+  layout?: 'column' | 'row' | 'grid';
   showAddButton?: boolean;
-  fillRemainingSpace?: boolean;
+  maxImages?: number;
+  className?: string;
 }
 
 export const PageImageManager: React.FC<PageImageManagerProps> = ({
@@ -195,72 +262,136 @@ export const PageImageManager: React.FC<PageImageManagerProps> = ({
   onImagesChange,
   layout = 'column',
   showAddButton = true,
-  fillRemainingSpace = true
+  maxImages = 5,
+  className,
 }) => {
-  const handleAddImage = (size: PageImage['size']) => {
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = images.findIndex((img) => img.id === active.id);
+      const newIndex = images.findIndex((img) => img.id === over.id);
+      onImagesChange(arrayMove(images, oldIndex, newIndex));
+    }
+  };
+
+  const handleAddImage = (size: ElementSize = 'md') => {
+    if (images.length >= maxImages) return;
+    
     const newImage: PageImage = {
       id: `${pageId}-img-${Date.now()}`,
       url: null,
       caption: 'Nova imagem',
       size,
-      position: 'inline'
+      position: 'inline',
     };
     onImagesChange([...images, newImage]);
   };
 
   const handleImageChange = (imageId: string, url: string | null) => {
-    onImagesChange(images.map(img => 
+    onImagesChange(images.map((img) =>
       img.id === imageId ? { ...img, url } : img
     ));
   };
 
-  const handleSizeChange = (imageId: string, size: PageImage['size']) => {
-    onImagesChange(images.map(img => 
-      img.id === imageId ? { ...img, size } : img
+  const handleSizeChange = (imageId: string, size: ElementSize) => {
+    onImagesChange(images.map((img) =>
+      img.id === imageId ? { ...img, size, height: undefined } : img
+    ));
+  };
+
+  const handleHeightChange = (imageId: string, height: number) => {
+    onImagesChange(images.map((img) =>
+      img.id === imageId ? { ...img, height } : img
     ));
   };
 
   const handleRemoveImage = (imageId: string) => {
-    onImagesChange(images.filter(img => img.id !== imageId));
+    onImagesChange(images.filter((img) => img.id !== imageId));
   };
 
   const layoutClasses = {
     column: 'flex flex-col gap-3',
     row: 'flex flex-row gap-3 flex-wrap',
     grid: 'grid grid-cols-2 gap-3',
-    sidebar: 'flex flex-col gap-3'
   };
 
-  // Determine if remaining space should be filled
-  const shouldFillSpace = fillRemainingSpace && images.length > 0;
-  const lastImageIndex = images.length - 1;
+  const sortingStrategy = layout === 'row' 
+    ? horizontalListSortingStrategy 
+    : verticalListSortingStrategy;
 
   return (
-    <div className={cn(layoutClasses[layout], fillRemainingSpace && 'flex-1')}>
-      {images.map((image, index) => (
-        <ImageSlot
-          key={image.id}
-          image={image}
-          onImageChange={(url) => handleImageChange(image.id, url)}
-          onSizeChange={(size) => handleSizeChange(image.id, size)}
-          onRemove={() => handleRemoveImage(image.id)}
-          fillSpace={shouldFillSpace && index === lastImageIndex && image.size === 'fill'}
-        />
-      ))}
-      
-      {showAddButton && (
-        <div className={cn(
-          "flex items-center justify-center",
-          images.length === 0 ? "flex-1 min-h-[100px]" : ""
-        )}>
-          <AddImageButton onAdd={handleAddImage} compact={images.length > 0} />
-        </div>
-      )}
-    </div>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
+      <div className={cn(layoutClasses[layout], 'flex-1', className)}>
+        <SortableContext
+          items={images.map((img) => img.id)}
+          strategy={sortingStrategy}
+        >
+          {images.map((image) => (
+            <SortableImageSlot
+              key={image.id}
+              image={image}
+              onImageChange={(url) => handleImageChange(image.id, url)}
+              onSizeChange={(size) => handleSizeChange(image.id, size)}
+              onHeightChange={(height) => handleHeightChange(image.id, height)}
+              onRemove={() => handleRemoveImage(image.id)}
+            />
+          ))}
+        </SortableContext>
+
+        {showAddButton && images.length < maxImages && (
+          <div className={cn(
+            "flex items-center justify-center",
+            images.length === 0 ? "flex-1 min-h-[100px]" : "py-2"
+          )}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-dashed border-muted-foreground/30 hover:border-gold hover:bg-gold/5 gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="text-xs">
+                    {images.length === 0 ? 'Adicionar imagem' : 'Mais'}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleAddImage('sm')}>
+                  <Minimize2 className="w-4 h-4 mr-2" /> Pequena
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAddImage('md')}>
+                  <Move className="w-4 h-4 mr-2" /> Média
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAddImage('lg')}>
+                  <Maximize2 className="w-4 h-4 mr-2" /> Grande
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAddImage('full')}>
+                  <Maximize2 className="w-4 h-4 mr-2" /> Preencher espaço
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+      </div>
+    </DndContext>
   );
 };
 
-// Simple inline image component for use within text flows
+// Simple inline image slot (no drag-and-drop)
 interface InlineImageSlotProps {
   imageUrl: string | null;
   onImageChange: (url: string | null) => void;
@@ -274,7 +405,7 @@ export const InlineImageSlot: React.FC<InlineImageSlotProps> = ({
   onImageChange,
   aspectRatio = 'landscape',
   className,
-  placeholder = 'Adicionar imagem'
+  placeholder = 'Adicionar imagem',
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -286,9 +417,7 @@ export const InlineImageSlot: React.FC<InlineImageSlotProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        onImageChange(reader.result as string);
-      };
+      reader.onloadend = () => onImageChange(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
@@ -302,7 +431,7 @@ export const InlineImageSlot: React.FC<InlineImageSlotProps> = ({
     square: 'aspect-square',
     portrait: 'aspect-[3/4]',
     landscape: 'aspect-[4/3]',
-    wide: 'aspect-[16/9]'
+    wide: 'aspect-[16/9]',
   };
 
   return (
@@ -353,7 +482,7 @@ export const InlineImageSlot: React.FC<InlineImageSlotProps> = ({
   );
 };
 
-// Flexible image container that fills remaining space
+// Flexible image container (simplified)
 interface FlexibleImageContainerProps {
   images: PageImage[];
   onImagesChange: (images: PageImage[]) => void;
@@ -367,112 +496,53 @@ export const FlexibleImageContainer: React.FC<FlexibleImageContainerProps> = ({
   onImagesChange,
   pageId,
   minHeight = '120px',
-  maxImages = 3
+  maxImages = 3,
 }) => {
-  const handleAddImage = () => {
-    if (images.length >= maxImages) return;
-    
-    const newImage: PageImage = {
-      id: `${pageId}-flex-${Date.now()}`,
-      url: null,
-      caption: 'Imagem',
-      size: images.length === 0 ? 'fill' : 'medium',
-      position: 'inline'
-    };
-    onImagesChange([...images, newImage]);
-  };
-
-  const handleImageChange = (imageId: string, url: string | null) => {
-    onImagesChange(images.map(img => 
-      img.id === imageId ? { ...img, url } : img
-    ));
-  };
-
-  const handleRemoveImage = (imageId: string) => {
-    onImagesChange(images.filter(img => img.id !== imageId));
-  };
-
-  // If no images and we want to fill space, show one placeholder
-  const showPlaceholder = images.length === 0;
-
-  // Determine grid layout based on number of images
-  const getGridClass = () => {
-    if (images.length === 1) return 'grid-cols-1';
-    if (images.length === 2) return 'grid-cols-2';
-    return 'grid-cols-2';
-  };
-
   return (
-    <div 
-      className="flex-1 flex flex-col gap-2" 
-      style={{ minHeight }}
-    >
-      {showPlaceholder ? (
-        <div 
-          onClick={handleAddImage}
-          className="flex-1 flex flex-col items-center justify-center cursor-pointer bg-muted/20 border-2 border-dashed border-muted-foreground/20 hover:border-gold/50 transition-all rounded-sm group"
-        >
-          <Plus className="w-8 h-8 mb-2 text-muted-foreground/40 group-hover:text-gold/60" />
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/40 group-hover:text-gold/60">
-            Adicionar imagem
-          </span>
-        </div>
-      ) : (
-        <>
-          <div className={cn("grid gap-2 flex-1", getGridClass())}>
-            {images.map((image) => (
-              <div key={image.id} className="relative group min-h-[80px]">
-                {image.url ? (
-                  <>
-                    <img
-                      src={image.url}
-                      alt={image.caption || "Imagem"}
-                      className="w-full h-full object-cover rounded-sm"
-                    />
-                    <button
-                      onClick={() => handleRemoveImage(image.id)}
-                      className="absolute top-1 right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </>
-                ) : (
-                  <div 
-                    onClick={() => document.getElementById(`file-${image.id}`)?.click()}
-                    className="w-full h-full flex flex-col items-center justify-center cursor-pointer bg-muted/30 border border-dashed border-muted-foreground/20 hover:border-gold/50 rounded-sm"
-                  >
-                    <input
-                      id={`file-${image.id}`}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => handleImageChange(image.id, reader.result as string);
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="hidden"
-                    />
-                    <ImagePlus className="w-5 h-5 text-muted-foreground/40" />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          
-          {images.length < maxImages && (
-            <button
-              onClick={handleAddImage}
-              className="flex items-center justify-center gap-1 py-1 text-[10px] text-muted-foreground/50 hover:text-gold/70 transition-colors"
-            >
-              <Plus className="w-3 h-3" />
-              Mais imagem
-            </button>
+    <PageImageManager
+      pageId={pageId}
+      images={images}
+      onImagesChange={onImagesChange}
+      layout="column"
+      showAddButton={true}
+      maxImages={maxImages}
+      className={`min-h-[${minHeight}]`}
+    />
+  );
+};
+
+// Re-export for backwards compatibility
+export { SortableImageSlot as ImageSlot };
+export const AddImageButton: React.FC<{ onAdd: (size: ElementSize) => void; compact?: boolean }> = ({ onAdd, compact = false }) => {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size={compact ? "sm" : "default"}
+          className={cn(
+            "border-dashed border-muted-foreground/30 hover:border-gold hover:bg-gold/5",
+            compact ? "h-8 px-2" : "gap-2"
           )}
-        </>
-      )}
-    </div>
+        >
+          <Plus className={cn(compact ? "w-3 h-3" : "w-4 h-4")} />
+          {!compact && <span className="text-xs">Adicionar Imagem</span>}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem onClick={() => onAdd('sm')}>
+          <Minimize2 className="w-4 h-4 mr-2" /> Pequena
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAdd('md')}>
+          <Move className="w-4 h-4 mr-2" /> Média
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAdd('lg')}>
+          <Maximize2 className="w-4 h-4 mr-2" /> Grande
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAdd('full')}>
+          <Maximize2 className="w-4 h-4 mr-2" /> Preencher espaço
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
