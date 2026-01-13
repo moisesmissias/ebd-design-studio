@@ -54,58 +54,47 @@ const createDefaultPageImages = (): MagazinePage[] => [
   { 
     id: 'page-1', 
     pageNumber: 1, 
-    images: [
-      { id: 'p1-cover', url: null, caption: 'Imagem de Capa', size: 'fill', position: 'full-width' }
-    ]
+    images: [] // Capa - imagens adicionadas pelo usuário
   },
   { 
     id: 'page-2', 
     pageNumber: 2, 
-    images: [
-      { id: 'p2-sidebar', url: null, caption: 'Ilustração', size: 'medium', position: 'sidebar' }
-    ]
+    images: [] // Introdução - sidebar
   },
   { 
     id: 'page-3', 
     pageNumber: 3, 
-    images: [
-      { id: 'p3-main', url: null, caption: 'Ilustração Tópico I', size: 'medium', position: 'sidebar' }
-    ]
+    images: [] // Leitura Bíblica + Tópico I
   },
   { 
     id: 'page-4', 
     pageNumber: 4, 
-    images: [
-      { id: 'p4-main', url: null, caption: 'Ilustração Tópico II', size: 'large', position: 'inline' }
-    ]
+    images: [] // Tópico I (cont) + Tópico II
   },
   { 
     id: 'page-5', 
     pageNumber: 5, 
-    images: [
-      { id: 'p5-main', url: null, caption: 'Ilustração Tópico III', size: 'medium', position: 'sidebar' }
-    ]
+    images: [] // Conhecendo mais + Tópico III
   },
   { 
     id: 'page-6', 
     pageNumber: 6, 
-    images: [
-      { id: 'p6-main', url: null, caption: 'Ilustração Conclusão', size: 'medium', position: 'sidebar' }
-    ]
+    images: [] // Interagindo + Conclusão
   },
   { 
     id: 'page-7', 
     pageNumber: 7, 
-    images: [
-      { id: 'p7-main', url: null, caption: 'Ilustração', size: 'medium', position: 'sidebar' }
-    ]
+    images: [] // Subsídios Teológicos
   },
   { 
     id: 'page-8', 
     pageNumber: 8, 
-    images: [
-      { id: 'p8-main', url: null, caption: 'Ilustração Final', size: 'large', position: 'inline' }
-    ]
+    images: [] // Perguntas para Reflexão
+  },
+  { 
+    id: 'page-9', 
+    pageNumber: 9, 
+    images: [] // Contracapa
   }
 ];
 

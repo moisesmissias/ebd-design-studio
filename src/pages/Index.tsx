@@ -5,7 +5,7 @@ import { MagazinePreview } from '@/components/magazine/MagazinePreview';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Download, Edit3, Eye, BookOpen, Loader2, Image } from 'lucide-react';
+import { Download, Edit3, Eye, BookOpen, Loader2, Image, FileText } from 'lucide-react';
 
 const Index = () => {
   const [content, setContent] = useState<MagazineContent>(defaultContent);
@@ -30,8 +30,6 @@ const Index = () => {
   // Count total images with content
   const imagesWithContent = content.pageImages?.reduce((total, page) => 
     total + page.images.filter(img => img.url).length, 0) || 0;
-  const totalImageSlots = content.pageImages?.reduce((total, page) => 
-    total + page.images.length, 0) || 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -57,30 +55,34 @@ const Index = () => {
                 {imagesWithContent} imagens
               </span>
             </div>
-            
-            <Button 
-              onClick={handleExportPdf}
-              disabled={isExporting}
-              className="bg-gold hover:bg-gold/90 text-foreground font-semibold gap-2"
-            >
-              {isExporting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Gerando PDF...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  Baixar PDF
-                </>
-              )}
-            </Button>
           </div>
         </div>
       </header>
 
+      {/* Botão de PDF Fixo - Sempre visível */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button 
+          onClick={handleExportPdf}
+          disabled={isExporting}
+          size="lg"
+          className="bg-gold hover:bg-gold/90 text-foreground font-semibold gap-2 shadow-2xl h-14 px-6 rounded-full"
+        >
+          {isExporting ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="hidden sm:inline">Gerando...</span>
+            </>
+          ) : (
+            <>
+              <Download className="w-5 h-5" />
+              <span className="hidden sm:inline">Baixar PDF</span>
+            </>
+          )}
+        </Button>
+      </div>
+
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto p-6">
+      <main className="max-w-7xl mx-auto p-6 pb-24">
         {/* Mobile Tabs */}
         <div className="lg:hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -140,9 +142,12 @@ const Index = () => {
                 <Eye className="w-5 h-5" />
                 Preview da Revista
               </h2>
-              <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
-                8 páginas • Formato A4
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full flex items-center gap-2">
+                  <FileText className="w-3 h-3" />
+                  9 páginas • Formato A4
+                </span>
+              </div>
             </div>
             <div className="transform scale-[0.55] origin-top-left w-[181.82%]">
               <MagazinePreview 
@@ -159,7 +164,7 @@ const Index = () => {
       <footer className="bg-muted py-4 px-6 mt-12 border-t">
         <div className="max-w-7xl mx-auto text-center">
           <p className="text-xs text-muted-foreground">
-            Ferramenta de diagramação para revistas de Escola Bíblica Dominical • Layout profissional estilo CPAD
+            Ferramenta de diagramação para revistas de Escola Bíblica Dominical • Layout profissional com 9 páginas incluindo capa e contracapa
           </p>
         </div>
       </footer>
